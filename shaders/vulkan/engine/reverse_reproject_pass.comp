@@ -44,7 +44,7 @@ float FloatPrecision(in float x, in uint NumMantissaBits)
 // returns true if texcoord is out of bounds
 bool TexBoundsCheck(in ivec2 tc, ivec2 size)
 {
-    return tc.x > size.x || tc.y > size.y || tc.x < 0 || tc.y < 0;
+    return tc.x >= size.x || tc.y >= size.y || tc.x < 0 || tc.y < 0;
 }
 
 // Reprojects old frame onto current frame via motion vectors,
@@ -88,10 +88,20 @@ void main()
 
     for (int i=0; i< 4; i++)
     {
+        if (TexBoundsCheck(tex_ids[i], tex_res))
+        {
+            normals_diff[i] = 1.0f;
+            _depth[i] = 10000.0f;
+            _weights[i] = 0.0f;
+            _values[i] = 0.0f;
+            _values_sq[i] = 0.0f;
+            continue;
+        }
+
         vec4 _normals_depth = imageLoad(tx_old_normal_depth, tex_ids[i]);
         normals_diff[i] = length(normals- normalize(_normals_depth.xyz));
         _depth[i] = _normals_depth.w;
-        _weights[i] *= (TexBoundsCheck(tex_ids[i], tex_res) || _depth[i] > 1000.0f) ? 0.0f : 1.0f;
+        _weights[i] *= (_depth[i] > 1000.0f) ? 0.0f : 1.0f;
         _values[i] = imageLoad(tx_old_frame, tex_ids[i]).x;
         _values_sq[i] = imageLoad(tx_old_frame, tex_ids[i]).y;
     }

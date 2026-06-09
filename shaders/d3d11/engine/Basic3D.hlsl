@@ -56,7 +56,7 @@ PS_BASE3D_IN BaseVS( VS_BASE3D_IN i )
 
     o.vTexCoord = i.vTexCoord;
     o.cColor    = i.cColor.bgra;
-    o.vPosition = mul( mViewProj, world_pos ); // transform to clip space
+    o.vPosition = mul( viewProj, world_pos ); // transform to clip space
 
     return o;
 }
@@ -66,16 +66,12 @@ PS_BASE3D_IN BaseVS( VS_BASE3D_IN i )
 //--------------------------------------------------------------------------------------
 float4 NoTexPS( PS_BASE3D_IN i ) : SV_Target
 {
-    float4 OutColor;
-    OutColor.rgb = i.cColor;
-    // OutColor.r = fPadding.x;
-    return OutColor;
+    return i.cColor;
 }
 
 float4 TexPS( PS_BASE3D_IN i ) : SV_Target
 {
-    float4 OutColor;
-    OutColor = /*t0.Sample( s0, i.vTexCoord ) */ i.cColor;
-    // OutColor.a = 1;
+    float4 OutColor = t0.Sample( s0, i.vTexCoord ) * i.cColor;
+    clip( OutColor.a < 0.5f ? -1.0f : 1.0f );
     return OutColor;
 }

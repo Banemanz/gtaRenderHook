@@ -62,8 +62,6 @@ PS_DEFERRED_DN_IN BaseVS(VS_INPUT i)
 
     o.vNormalDepth =
         float4( mul( (float3x3)mWorldInv, i.vInNormal ), outPos.z );
-    o.vTangent   = float4( mul( (float3x3)mWorldInv, i.vInTangents ), 1.0 );
-    o.vBiTangent = float4( mul( (float3x3)mWorldInv, i.vInBiTangents ), 1.0 );
 	o.vTexCoord     = float4(i.vTexCoord, 0, 0);
 	o.vColor		= i.vInColor;
 
@@ -117,7 +115,7 @@ inline float3 DecodeNormals(float2 v)
 	return n;
 }
 
-PS_DEFERRED_OUT BasePS(PS_DEFERRED_IN i)
+PS_DEFERRED_OUT BasePS(PS_DEFERRED_DN_IN i)
 {
     PS_DEFERRED_OUT Out;
 

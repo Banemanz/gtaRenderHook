@@ -223,7 +223,7 @@ void RTSceneDescription::RecordDrawCall( const DrawCallInfo &dc,
         if ( iter != mPrevTransformMap.end() )
             obj_desc.prevTransfom = iter->second;
         else
-            DirectX::XMStoreFloat4x4( &obj_desc.prevTransfom, it_mtx );
+            obj_desc.prevTransfom = obj_desc.transform;
 
         mPrevTransformMap[dc.DrawCallId] = obj_desc.transform;
     }

@@ -79,10 +79,10 @@ void main()
         pay_load.hitDistance = 1.0f;
         if (material.txd_id >= 0) {
             vec4 tex_color = texture(sampler2D(textures[material.txd_id], baseSampler), tc);
-            pay_load.emission = tex_color * unpackUnorm4x8(material.color);
+            pay_load.emission = tex_color * unpackUnorm4x8(material.color) * color;
         }
         else
-            pay_load.emission = vec4(unpackUnorm4x8(material.color));
+            pay_load.emission = unpackUnorm4x8(material.color) * color;
     }
     vec4 world_pos_current = ((vec4(obj_pos, 1.0) * scnDesc.i[gl_InstanceID].transfo));
     vec4 world_pos_prev = ((vec4(prev_obj_pos, 1.0) * scnDesc.i[gl_InstanceID].prevTransfo));

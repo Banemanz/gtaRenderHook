@@ -43,11 +43,16 @@ void main()
 
     vec2 tc = v0.uv.xy * barycentrics.x + v1.uv.xy * barycentrics.y + v2.uv.xy * barycentrics.z;
 
-    if (material.txd_id >= 0) {
-        vec4 tex_color =texture(sampler2D(textures[material.txd_id], baseSampler), tc);
-        if (tex_color.a < 0.5)
-        ignoreIntersectionEXT;
+    vec4 material_color = unpackUnorm4x8(material.color);
+    vec4 vertex_color = color;
+    float alpha = material_color.a * vertex_color.a;
+
+    if (material.txd_id >= 0)
+    {
+        vec4 tex_color = texture(sampler2D(textures[material.txd_id], baseSampler), tc);
+        alpha *= tex_color.a;
     }
-    else if (unpackUnorm4x8(material.color).a  < 0.5)
+
+    if (alpha < 0.5)
         ignoreIntersectionEXT;
 }
