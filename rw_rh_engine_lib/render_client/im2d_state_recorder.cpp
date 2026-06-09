@@ -13,6 +13,25 @@ namespace
 {
 constexpr auto Im2DVertexCountLimit = 100000;
 constexpr auto Im2DIndexCountLimit  = 100000;
+
+void EnsureVertexCapacity( std::vector<RwIm2DVertex> &buffer, uint32_t required )
+{
+    if ( buffer.size() < required )
+        buffer.resize( required );
+}
+
+void EnsureIndexCapacity( std::vector<int16_t> &buffer, uint32_t required )
+{
+    if ( buffer.size() < required )
+        buffer.resize( required );
+}
+
+void EnsureDrawCallCapacity( std::vector<Im2DDrawCall> &buffer,
+                             uint32_t                   required )
+{
+    if ( buffer.size() < required )
+        buffer.resize( required );
+}
 } // namespace
 Im2DStateRecorder::Im2DStateRecorder( ImmediateState &im_state ) noexcept
     : ImState{ im_state }
@@ -30,6 +49,9 @@ Im2DStateRecorder::~Im2DStateRecorder() noexcept = default;
 void Im2DStateRecorder::RecordDrawCall( RwIm2DVertex *vertices,
                                         int32_t       num_vertices )
 {
+    EnsureDrawCallCapacity( DrawCalls, DrawCallCount + 1 );
+    EnsureVertexCapacity( VertexBuffer, VertexCount + num_vertices );
+
     auto &result_dc = DrawCalls[DrawCallCount];
     auto &im_state  = ImState;
 
@@ -54,6 +76,10 @@ void Im2DStateRecorder::RecordDrawCall( RwIm2DVertex *vertices,
                                         int32_t num_vertices, int16_t *indices,
                                         int32_t num_indices )
 {
+    EnsureDrawCallCapacity( DrawCalls, DrawCallCount + 1 );
+    EnsureIndexCapacity( IndexBuffer, IndexCount + num_indices );
+    EnsureVertexCapacity( VertexBuffer, VertexCount + num_vertices );
+
     auto &result_dc = DrawCalls[DrawCallCount];
     auto &im_state  = ImState;
 

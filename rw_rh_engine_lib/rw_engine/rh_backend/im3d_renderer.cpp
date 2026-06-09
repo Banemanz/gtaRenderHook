@@ -156,6 +156,16 @@ struct PackedIm3DState
     };
 };
 
+Topology GetTopology( uint8_t prim_type )
+{
+    switch ( static_cast<RwPrimitiveType>( prim_type ) )
+    {
+    case rwPRIMTYPELINELIST: return Topology::LineList;
+    case rwPRIMTYPEPOINTLIST: return Topology::PointList;
+    default: return Topology::TriangleList;
+    }
+}
+
 AttachmentBlendState UnpackBlendState( const PackedIm3DState &s )
 {
     return { .srcBlend       = static_cast<BlendOp>( s.s_val.srcBlendState ),
@@ -221,7 +231,7 @@ rh::engine::IPipeline *Im3DRenderer::GetCachedPipeline( uint64_t hash )
                                                 ? ps_stage_desc
                                                 : ps_stage_notex_desc },
           .mVertexInputStateDesc = { vertex_binding_desc, vertex_layout_desc },
-          .mTopology             = Topology::TriangleList, // TODO: Allow more
+          .mTopology             = GetTopology( s.s_val.primType ),
           .mBlendState           = blend_state,
           .mDepthStencilState    = depth_state } );
 
@@ -267,8 +277,6 @@ uint64_t Im3DRenderer::Render( const Im3DRenderState &     state,
     for ( auto &draw_call : state.DrawCalls )
     {
         // Compute pipeline hash
-        if ( draw_call.State.PrimType != 3 )
-            continue;
         PackedIm3DState s{};
         s.s_val.enableBlend = draw_call.State.BlendEnable;
         s.s_val.hasTexture =
@@ -277,6 +285,7 @@ uint64_t Im3DRenderer::Render( const Im3DRenderState &     state,
         s.s_val.destBlendState = draw_call.State.ColorBlendDst;
         s.s_val.zTestEnable    = draw_call.State.ZTestEnable;
         s.s_val.zWriteEnable   = draw_call.State.ZWriteEnable;
+        s.s_val.primType       = draw_call.State.PrimType;
 
         std::copy( &draw_call.WorldTransform.m[0][0],
                    &draw_call.WorldTransform.m[0][0] + 3 * 4,
@@ -286,8 +295,10 @@ uint64_t Im3DRenderer::Render( const Im3DRenderState &     state,
         matrix_buffers[dc_id].m[3][2] = 0.0f;
         matrix_buffers[dc_id].m[3][3] = 1.0f;
 
+        auto pipeline_layout = s.s_val.hasTexture ? mTexLayout : mNoTexLayout;
+
         cmd_buffer->BindDescriptorSets(
-            { .mPipelineLayout       = mNoTexLayout,
+            { .mPipelineLayout       = pipeline_layout,
               .mDescriptorSetsOffset = 1,
               .mDescriptorSets       = { mMatrixDescriptorSetPool[dc_id] } } );
 

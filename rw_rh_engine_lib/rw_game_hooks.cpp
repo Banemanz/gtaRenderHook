@@ -2,6 +2,7 @@
 #include <DebugUtils/DebugLogger.h>
 #include <injection_utils/InjectorHelpers.h>
 #include <render_client/render_client.h>
+#include <data_desc/immediate_mode/im_state.h>
 #include <rw_engine/rh_backend/im2d_backend.h>
 #include <rw_engine/rh_backend/im3d_backend.h>
 #include <rw_engine/rw_rh_convert_funcs.h>
@@ -160,9 +161,11 @@ int32_t RwGameHooks::SetRenderState( int32_t nState, void *pParam )
 int32_t RwGameHooks::GetRenderState( [[maybe_unused]] int32_t nState,
                                      void *                   pParam )
 {
-    /* debug::DebugLogger::Log( "RWGAMEHOOKS_LOG: GetRenderState:" +
-                              std::to_string( nState ) );*/
-    *static_cast<uint32_t *>( pParam ) = 0;
+    if ( pParam == nullptr || gRenderClient == nullptr )
+        return false;
+
+    *static_cast<uintptr_t *>( pParam ) =
+        gRenderClient->RenderState.ImState.Get( nState );
     return true;
 }
 

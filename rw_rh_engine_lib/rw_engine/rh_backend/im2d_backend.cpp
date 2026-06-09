@@ -13,42 +13,118 @@ namespace rh::rw::engine
 {
 using namespace rh::engine;
 
-RwIm2DVertex *TriFanToTriList( RwIm2DVertex *vertices_in,
-                               RwIm2DVertex *vertices_out,
-                               int32_t &     vertex_count )
+namespace
 {
-    uint32_t k = 0;
-    for ( int32_t i = 1; i < vertex_count - 1; i++ )
+void AppendTriFan( RwIm2DVertex *vertices, int32_t vertex_count,
+                   std::vector<RwIm2DVertex> &out )
+{
+    for ( int32_t i = 1; i + 1 < vertex_count; i++ )
     {
-        vertices_out[k++] = ( vertices_in[0] );
-        vertices_out[k++] = ( vertices_in[i] );
-        vertices_out[k++] = ( vertices_in[i + 1] );
+        out.push_back( vertices[0] );
+        out.push_back( vertices[i] );
+        out.push_back( vertices[i + 1] );
     }
-    vertex_count = k;
-    return vertices_out;
 }
+
+void AppendTriStrip( RwIm2DVertex *vertices, int32_t vertex_count,
+                     std::vector<RwIm2DVertex> &out )
+{
+    for ( int32_t i = 0; i + 2 < vertex_count; i++ )
+    {
+        if ( i & 1 )
+        {
+            out.push_back( vertices[i + 1] );
+            out.push_back( vertices[i] );
+            out.push_back( vertices[i + 2] );
+        }
+        else
+        {
+            out.push_back( vertices[i] );
+            out.push_back( vertices[i + 1] );
+            out.push_back( vertices[i + 2] );
+        }
+    }
+}
+
+std::vector<RwIm2DVertex> IndexedToTriList( int32_t prim_type,
+                                            RwIm2DVertex *vertices,
+                                            int16_t *indices,
+                                            int32_t index_count )
+{
+    std::vector<RwIm2DVertex> out;
+    if ( index_count <= 0 )
+        return out;
+
+    if ( prim_type == RwPrimitiveType::rwPRIMTYPETRIFAN && index_count >= 3 )
+        out.reserve( ( index_count - 2 ) * 3 );
+    else if ( prim_type == RwPrimitiveType::rwPRIMTYPETRISTRIP &&
+              index_count >= 3 )
+        out.reserve( ( index_count - 2 ) * 3 );
+    else
+        out.reserve( index_count );
+
+    auto read = [vertices, indices]( int32_t i ) -> RwIm2DVertex & {
+        return vertices[indices[i]];
+    };
+
+    switch ( prim_type )
+    {
+    case RwPrimitiveType::rwPRIMTYPETRILIST:
+        for ( int32_t i = 0; i < index_count; i++ )
+            out.push_back( read( i ) );
+        break;
+    case RwPrimitiveType::rwPRIMTYPETRIFAN:
+        for ( int32_t i = 1; i + 1 < index_count; i++ )
+        {
+            out.push_back( read( 0 ) );
+            out.push_back( read( i ) );
+            out.push_back( read( i + 1 ) );
+        }
+        break;
+    case RwPrimitiveType::rwPRIMTYPETRISTRIP:
+        for ( int32_t i = 0; i + 2 < index_count; i++ )
+        {
+            if ( i & 1 )
+            {
+                out.push_back( read( i + 1 ) );
+                out.push_back( read( i ) );
+                out.push_back( read( i + 2 ) );
+            }
+            else
+            {
+                out.push_back( read( i ) );
+                out.push_back( read( i + 1 ) );
+                out.push_back( read( i + 2 ) );
+            }
+        }
+        break;
+    default: break;
+    }
+    return out;
+}
+} // namespace
 
 int32_t Im2DRenderPrimitiveFunction( int32_t primType, RwIm2DVertex *vertices,
                                      int32_t numVertices )
 {
     if ( gRwDeviceGlobals.DeviceGlobalsPtr->curCamera == nullptr )
         return 1;
-    auto  to_vertices = vertices;
-    auto  vert_count  = numVertices;
-    auto &im2d        = gRenderClient->RenderState.Im2D;
-    if ( primType == RwPrimitiveType::rwPRIMTYPETRIFAN )
+
+    auto &im2d = gRenderClient->RenderState.Im2D;
+    if ( primType == RwPrimitiveType::rwPRIMTYPETRILIST )
     {
-        std::vector<RwIm2DVertex> vertices_2;
-        vertices_2.resize( ( numVertices - 1 ) * 3 );
-
-        // convert trifan to trilist
-        to_vertices =
-            TriFanToTriList( vertices, vertices_2.data(), vert_count );
-
-        im2d.RecordDrawCall( to_vertices, vert_count );
+        im2d.RecordDrawCall( vertices, numVertices );
+        return 1;
     }
-    else
-        im2d.RecordDrawCall( to_vertices, vert_count );
+
+    std::vector<RwIm2DVertex> vertices_2;
+    if ( primType == RwPrimitiveType::rwPRIMTYPETRIFAN )
+        AppendTriFan( vertices, numVertices, vertices_2 );
+    else if ( primType == RwPrimitiveType::rwPRIMTYPETRISTRIP )
+        AppendTriStrip( vertices, numVertices, vertices_2 );
+
+    if ( !vertices_2.empty() )
+        im2d.RecordDrawCall( vertices_2.data(), vertices_2.size() );
     return 1;
 }
 
@@ -60,20 +136,17 @@ int32_t Im2DRenderIndexedPrimitiveFunction( int32_t       primType,
 {
     if ( gRwDeviceGlobals.DeviceGlobalsPtr->curCamera == nullptr )
         return 1;
-    auto  to_vertices = vertices;
-    auto  vert_count  = numVertices;
-    auto &im2d        = gRenderClient->RenderState.Im2D;
-    if ( primType == RwPrimitiveType::rwPRIMTYPETRIFAN )
-    {
-        std::vector<RwIm2DVertex> vertices_2;
-        vertices_2.resize( ( numVertices - 1 ) * 3 );
 
-        to_vertices =
-            TriFanToTriList( vertices, vertices_2.data(), vert_count );
-        im2d.RecordDrawCall( to_vertices, vert_count, indices, numIndices );
+    auto &im2d = gRenderClient->RenderState.Im2D;
+    if ( primType == RwPrimitiveType::rwPRIMTYPETRILIST )
+    {
+        im2d.RecordDrawCall( vertices, numVertices, indices, numIndices );
+        return 1;
     }
-    else
-        im2d.RecordDrawCall( to_vertices, vert_count, indices, numIndices );
+
+    auto vertices_2 = IndexedToTriList( primType, vertices, indices, numIndices );
+    if ( !vertices_2.empty() )
+        im2d.RecordDrawCall( vertices_2.data(), vertices_2.size() );
     return 1;
 }
 } // namespace rh::rw::engine

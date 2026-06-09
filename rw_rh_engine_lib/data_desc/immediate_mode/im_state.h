@@ -18,6 +18,7 @@ struct ImmediateState
     uint8_t ZWriteEnable{};
     uint8_t StencilEnable{};
     ImmediateState();
-    void Update( int32_t nState, void *pParam );
+    void      Update( int32_t nState, void *pParam );
+    uintptr_t Get( int32_t nState ) const;
 };
 } // namespace rh::rw::engine

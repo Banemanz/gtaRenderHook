@@ -52,9 +52,8 @@ PS_IM3D_IN BaseVS( VS_IM3D_IN i )
 
     o.vTexCoord = i.vTexCoord;
     o.cColor    = i.cColor.bgra;
-    o.vPosition = mul(
-        proj, mul( float4( i.vPosition.x, i.vPosition.y, i.vPosition.z, 1.0f ),
-                   view ) ); // transform to screen space
+    float4 world_pos = mul( worldMat, float4( i.vPosition.xyz, 1.0f ) );
+    o.vPosition = mul( proj, mul( world_pos, view ) ); // transform to screen space
 
     return o;
 }
@@ -64,10 +63,7 @@ PS_IM3D_IN BaseVS( VS_IM3D_IN i )
 //--------------------------------------------------------------------------------------
 float4 NoTexPS( PS_IM3D_IN i ) : SV_Target
 {
-    float4 OutColor;
-    OutColor.rgb = i.cColor;
-    // OutColor.r = fPadding.x;
-    return OutColor;
+    return i.cColor;
 }
 
 float4 TexPS( PS_IM3D_IN i ) : SV_Target

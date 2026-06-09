@@ -13,6 +13,109 @@ namespace rh::rw::engine
 constexpr auto Im3DVertexCountLimit = 100000;
 constexpr auto Im3DIndexCountLimit  = 100000;
 
+namespace
+{
+void EnsureVertexCapacity( std::vector<RwIm3DVertex> &buffer, uint32_t required )
+{
+    if ( buffer.size() < required )
+        buffer.resize( required );
+}
+
+void EnsureIndexCapacity( std::vector<uint16_t> &buffer, uint32_t required )
+{
+    if ( buffer.size() < required )
+        buffer.resize( required );
+}
+
+void EnsureDrawCallCapacity( std::vector<Im3DDrawCall> &buffer,
+                             uint32_t                   required )
+{
+    if ( buffer.size() < required )
+        buffer.resize( required );
+}
+
+uint32_t ConvertedIndexCount( RwPrimitiveType prim_type, uint32_t source_count )
+{
+    switch ( prim_type )
+    {
+    case rwPRIMTYPETRILIST: return source_count;
+    case rwPRIMTYPETRISTRIP:
+    case rwPRIMTYPETRIFAN:
+        return source_count < 3 ? 0 : ( source_count - 2 ) * 3;
+    case rwPRIMTYPELINELIST: return source_count;
+    case rwPRIMTYPEPOLYLINE:
+        return source_count < 2 ? 0 : ( source_count - 1 ) * 2;
+    case rwPRIMTYPEPOINTLIST: return source_count;
+    default: break;
+    }
+    return 0;
+}
+
+RwPrimitiveType NormalizePrimitiveType( RwPrimitiveType prim_type )
+{
+    switch ( prim_type )
+    {
+    case rwPRIMTYPETRISTRIP:
+    case rwPRIMTYPETRIFAN: return rwPRIMTYPETRILIST;
+    case rwPRIMTYPEPOLYLINE: return rwPRIMTYPELINELIST;
+    default: return prim_type;
+    }
+}
+
+template <typename IndexReader>
+uint32_t WriteConvertedIndices( RwPrimitiveType prim_type, uint32_t source_count,
+                                uint16_t *dst, IndexReader read_index )
+{
+    uint32_t out_count = 0;
+    switch ( prim_type )
+    {
+    case rwPRIMTYPETRILIST:
+    case rwPRIMTYPELINELIST:
+    case rwPRIMTYPEPOINTLIST:
+        for ( uint32_t i = 0; i < source_count; ++i )
+            dst[out_count++] = read_index( i );
+        break;
+    case rwPRIMTYPETRISTRIP:
+        for ( uint32_t i = 0; i + 2 < source_count; ++i )
+        {
+            const auto i0 = read_index( i );
+            const auto i1 = read_index( i + 1 );
+            const auto i2 = read_index( i + 2 );
+            if ( i & 1 )
+            {
+                dst[out_count++] = i1;
+                dst[out_count++] = i0;
+                dst[out_count++] = i2;
+            }
+            else
+            {
+                dst[out_count++] = i0;
+                dst[out_count++] = i1;
+                dst[out_count++] = i2;
+            }
+        }
+        break;
+    case rwPRIMTYPETRIFAN:
+        for ( uint32_t i = 1; i + 1 < source_count; ++i )
+        {
+            dst[out_count++] = read_index( 0 );
+            dst[out_count++] = read_index( i );
+            dst[out_count++] = read_index( i + 1 );
+        }
+        break;
+    case rwPRIMTYPEPOLYLINE:
+        for ( uint32_t i = 0; i + 1 < source_count; ++i )
+        {
+            dst[out_count++] = read_index( i );
+            dst[out_count++] = read_index( i + 1 );
+        }
+        break;
+    default: break;
+    }
+    return out_count;
+}
+} // namespace
+
 Im3DStateRecorder::Im3DStateRecorder( ImmediateState &im_state ) noexcept
     : ImState( im_state )
 {
@@ -47,26 +150,42 @@ void Im3DStateRecorder::Transform( RwIm3DVertex *vertices, uint32_t count,
 
 void Im3DStateRecorder::RenderPrimitive( RwPrimitiveType prim_type )
 {
+    assert( StashedVertices );
+    if ( StashedVerticesCount == 0 )
+        return;
+
+    const auto converted_index_count =
+        ConvertedIndexCount( prim_type, StashedVerticesCount );
+    if ( converted_index_count == 0 )
+        return;
+
+    EnsureDrawCallCapacity( DrawCalls, DrawCallCount + 1 );
+    EnsureVertexCapacity( VertexBuffer, VertexCount + StashedVerticesCount );
+    EnsureIndexCapacity( IndexBuffer, IndexCount + converted_index_count );
+
     auto &result_dc = DrawCalls[DrawCallCount];
 
     result_dc.IndexBufferOffset  = IndexCount;
     result_dc.VertexBufferOffset = VertexCount;
-    assert( StashedVertices );
 
     CopyMemory( ( VertexBuffer.data() + VertexCount ), StashedVertices,
                 StashedVerticesCount * sizeof( RwIm3DVertex ) );
     VertexCount += StashedVerticesCount;
 
-    result_dc.IndexCount  = 0;
-    result_dc.VertexCount = StashedVerticesCount;
+    result_dc.IndexCount = WriteConvertedIndices(
+        prim_type, StashedVerticesCount, IndexBuffer.data() + IndexCount,
+        []( uint32_t i ) { return static_cast<uint16_t>( i ); } );
+    IndexCount += result_dc.IndexCount;
 
-    result_dc.RasterId       = ImState.Raster;
-    result_dc.WorldTransform = StashedWorldTransform;
-    result_dc.State          = {
+    result_dc.VertexCount     = StashedVerticesCount;
+    result_dc.RasterId        = ImState.Raster;
+    result_dc.WorldTransform  = StashedWorldTransform;
+    const auto normalizedType = NormalizePrimitiveType( prim_type );
+    result_dc.State           = {
         ImState.ColorBlendSrc, ImState.ColorBlendDst,
         ImState.ColorBlendOp,  ImState.BlendEnable,
         ImState.ZTestEnable,   ImState.ZWriteEnable,
-        ImState.StencilEnable, static_cast<uint8_t>( prim_type ) };
+        ImState.StencilEnable, static_cast<uint8_t>( normalizedType ) };
 
     DrawCallCount++;
 }
@@ -75,30 +194,44 @@ void Im3DStateRecorder::RenderIndexedPrimitive( RwPrimitiveType prim_type,
                                                 uint16_t       *indices,
                                                 int32_t         num_indices )
 {
+    assert( indices );
+    assert( StashedVertices );
+    if ( num_indices <= 0 || StashedVerticesCount == 0 )
+        return;
+
+    const auto source_index_count    = static_cast<uint32_t>( num_indices );
+    const auto converted_index_count =
+        ConvertedIndexCount( prim_type, source_index_count );
+    if ( converted_index_count == 0 )
+        return;
+
+    EnsureDrawCallCapacity( DrawCalls, DrawCallCount + 1 );
+    EnsureVertexCapacity( VertexBuffer, VertexCount + StashedVerticesCount );
+    EnsureIndexCapacity( IndexBuffer, IndexCount + converted_index_count );
+
     auto &result_dc = DrawCalls[DrawCallCount];
 
     result_dc.IndexBufferOffset  = IndexCount;
     result_dc.VertexBufferOffset = VertexCount;
-    assert( indices );
-    assert( StashedVertices );
 
-    CopyMemory( ( IndexBuffer.data() + IndexCount ), indices,
-                num_indices * sizeof( uint16_t ) );
     CopyMemory( ( VertexBuffer.data() + VertexCount ), StashedVertices,
                 StashedVerticesCount * sizeof( RwIm3DVertex ) );
     VertexCount += StashedVerticesCount;
-    IndexCount += num_indices;
 
-    result_dc.IndexCount  = num_indices;
-    result_dc.VertexCount = StashedVerticesCount;
+    result_dc.IndexCount = WriteConvertedIndices(
+        prim_type, source_index_count, IndexBuffer.data() + IndexCount,
+        [indices]( uint32_t i ) { return indices[i]; } );
+    IndexCount += result_dc.IndexCount;
 
-    result_dc.RasterId       = ImState.Raster;
-    result_dc.WorldTransform = StashedWorldTransform;
-    result_dc.State          = {
+    result_dc.VertexCount     = StashedVerticesCount;
+    result_dc.RasterId        = ImState.Raster;
+    result_dc.WorldTransform  = StashedWorldTransform;
+    const auto normalizedType = NormalizePrimitiveType( prim_type );
+    result_dc.State           = {
         ImState.ColorBlendSrc, ImState.ColorBlendDst,
         ImState.ColorBlendOp,  ImState.BlendEnable,
         ImState.ZTestEnable,   ImState.ZWriteEnable,
-        ImState.StencilEnable, static_cast<uint8_t>( prim_type ) };
+        ImState.StencilEnable, static_cast<uint8_t>( normalizedType ) };
 
     DrawCallCount++;
 }

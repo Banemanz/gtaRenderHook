@@ -66,10 +66,7 @@ PS_IM2D_IN BaseVS( VS_IM2D_IN i )
 //--------------------------------------------------------------------------------------
 float4 NoTexPS( PS_IM2D_IN i ) : SV_Target
 {
-    float4 OutColor;
-    OutColor.rgb = i.cColor;
-    // OutColor.r = fPadding.x;
-    return OutColor;
+    return i.cColor;
 }
 
 float4 TexPS( PS_IM2D_IN i ) : SV_Target
