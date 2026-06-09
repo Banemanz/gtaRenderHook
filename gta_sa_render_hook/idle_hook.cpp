@@ -114,10 +114,14 @@ void IdleHook::Idle( void *data )
         sky_state.mAmbientColor[2]   = cur_cs.m_fAmbientBlue;
         sky_state.mAmbientColor[3]   = 1.0f;
 
-        sky_state.mSunDir[0] = vec_to_sun_arr[current_tc_value].x;
-        sky_state.mSunDir[1] = vec_to_sun_arr[current_tc_value].y;
-        sky_state.mSunDir[2] = vec_to_sun_arr[current_tc_value].z;
-        sky_state.mSunDir[3] = 1.0f;
+        sky_state.mSunDir[0]   = vec_to_sun_arr[current_tc_value].x;
+        sky_state.mSunDir[1]   = vec_to_sun_arr[current_tc_value].y;
+        sky_state.mSunDir[2]   = vec_to_sun_arr[current_tc_value].z;
+        sky_state.mSunDir[3]   = 1.0f;
+        sky_state.mSunColor[0] = float( cur_cs.m_nSunCoreRed ) / 255.0f;
+        sky_state.mSunColor[1] = float( cur_cs.m_nSunCoreGreen ) / 255.0f;
+        sky_state.mSunColor[2] = float( cur_cs.m_nSunCoreBlue ) / 255.0f;
+        sky_state.mSunColor[3] = 1.0f;
 
         CRenderer::ConstructRenderList();
         CRenderer::PreRender();

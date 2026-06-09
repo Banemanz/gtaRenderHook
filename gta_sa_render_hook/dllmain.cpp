@@ -1,4 +1,4 @@
-﻿#include "game_patches/material_system_patches.h"
+#include "game_patches/material_system_patches.h"
 #include "gta_sa_internal_classes/CColorSet.h"
 #include "idle_hook.h"
 #include <ConfigUtils/ConfigurationManager.h>
@@ -153,6 +153,10 @@ void prepare_timecyc()
     sky_state.mSunDir[1]       = vec_to_sun_arr[current_tc_value].y;
     sky_state.mSunDir[2]       = vec_to_sun_arr[current_tc_value].z;
     sky_state.mSunDir[3]       = 1.0f;
+    sky_state.mSunColor[0]     = float( cur_cs.m_nSunCoreRed ) / 255.0f;
+    sky_state.mSunColor[1]     = float( cur_cs.m_nSunCoreGreen ) / 255.0f;
+    sky_state.mSunColor[2]     = float( cur_cs.m_nSunCoreBlue ) / 255.0f;
+    sky_state.mSunColor[3]     = 1.0f;
 }
 void *rwD3D9RasterDtor( void *object ) { return object; }
 

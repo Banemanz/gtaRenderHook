@@ -120,8 +120,12 @@ vec3 getConeSample(vec2 rng, vec3 direction, float coneAngle) {
     vec3 north = vec3(0.f, 0.f, 1.f);
 
     // Find the rotation axis `u` and rotation angle `rot` [1]
-    vec3 axis = normalize(cross(north, normalize(direction)));
-    float angle = acos(dot(normalize(direction), north));
+    vec3 axis = cross(north, normalize(direction));
+    if (dot(axis, axis) < 0.000001f)
+        axis = vec3(1.0f, 0.0f, 0.0f);
+    else
+        axis = normalize(axis);
+    float angle = acos(clamp(dot(normalize(direction), north), -1.0f, 1.0f));
 
     // Convert rotation axis and angle to 3x3 rotation matrix [2]
     mat3 R = angleAxis3x3(angle, axis);
@@ -156,11 +160,11 @@ void main()
     vec3 right = 0.3f * w + vec3(-0.72f, 0.56f, -0.34f);
     v = normalize(cross(w, right));
     u = cross(v, w);
-    vec3 light_dir = sky_cfg.sunDir.xyz;
-    float light_int = 1.0f;
+    vec3 light_dir = normalize(sky_cfg.sunDir.xyz);
+    float light_int = max(max(sky_cfg.sunColor.r, sky_cfg.sunColor.g), sky_cfg.sunColor.b);
     if (light_dir.z < 0) {
         light_dir.z = -light_dir.z;
-        light_int = 0.15f;
+        light_int *= 0.15f;
     }
 
     vec4 world_pos = vec4(origin.xyz + direction.xyz * normals_d.w, 1);
@@ -280,7 +284,7 @@ void main()
     }
     //ao_accum /= float(sample_count + 3);
     //velocity /= float(sample_count + 3);
-    res_color += normals_d.w < 5000 ? vec3(ao_accum) : vec3(0.0f);
+    res_color += normals_d.w < 5000 ? sky_cfg.sunColor.rgb * ao_accum : vec3(0.0f);
 
     imageStore(result, ivec2(gl_LaunchIDEXT.xy), vec4(res_color.xyz, velocity * 100.0f));
 }

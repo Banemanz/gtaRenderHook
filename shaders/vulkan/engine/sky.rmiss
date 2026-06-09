@@ -93,6 +93,6 @@ vec3 GetSkyColor(vec3 ViewDir, vec3 LightDir, vec3 FullScattering)
 
 void main()
 {
-    vec3 sun_dir = sky_cfg.sunDir.xyz;//normalize(vec3(0,-100,20));
+    vec3 sun_dir = normalize(sky_cfg.sunDir.xyz);//normalize(vec3(0,-100,20));
     hitValue = GetSkyColor(gl_WorldRayDirectionEXT, sun_dir, CalculateFullScatter(gl_WorldRayDirectionEXT, sun_dir, (gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * 1000.0f).z));//vec3(0.0, 0.1, 0.3);
 }

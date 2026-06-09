@@ -7,6 +7,7 @@
 #include "Game.h"
 #include "ModelInfo.h"
 #include "Streaming.h"
+#include <algorithm>
 #include <cmath>
 #include <injection_utils/InjectorHelpers.h>
 #include <render_client/render_client.h>
@@ -349,10 +350,17 @@ void Renderer::Render()
         m_fCurrentAmbientBlue; // float( m_nCurrentSkyTopBlue ) / 255.0f;
     sky_state.mAmbientColor[3] = 1.0f;
 
-    sky_state.mSunDir[0] = vec_to_sun_arr[current_tc_value].x;
-    sky_state.mSunDir[1] = vec_to_sun_arr[current_tc_value].y;
-    sky_state.mSunDir[2] = vec_to_sun_arr[current_tc_value].z;
-    sky_state.mSunDir[3] = 1.0f;
+    sky_state.mSunDir[0]   = vec_to_sun_arr[current_tc_value].x;
+    sky_state.mSunDir[1]   = vec_to_sun_arr[current_tc_value].y;
+    sky_state.mSunDir[2]   = vec_to_sun_arr[current_tc_value].z;
+    sky_state.mSunDir[3]   = 1.0f;
+    sky_state.mSunColor[0] = std::max( sky_state.mSkyBottomColor[0],
+                                        sky_state.mSkyTopColor[0] );
+    sky_state.mSunColor[1] = std::max( sky_state.mSkyBottomColor[1],
+                                        sky_state.mSkyTopColor[1] ) * 0.9f;
+    sky_state.mSunColor[2] = std::max( sky_state.mSkyBottomColor[2],
+                                        sky_state.mSkyTopColor[2] ) * 0.75f;
+    sky_state.mSunColor[3] = 1.0f;
 
     // For no obvious reason rendering non-buildings before buildings "fixes"
     // some bugs, e.g. lack of textures on palms

@@ -10,6 +10,7 @@ struct SkyState
     float mSkyTopColor[4];
     float mSkyBottomColor[4];
     float mSunDir[4];
+    float mSunColor[4];
     float mAmbientColor[4];
 };
 } // namespace rh::rw::engine

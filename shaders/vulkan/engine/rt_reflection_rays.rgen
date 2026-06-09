@@ -62,13 +62,14 @@ void main()
     vec3 random_s_dir = texture(sampler2D(randomNoise, baseSampler), vec2((gl_LaunchIDEXT.xy)%64+ jitter.xy * (refl_params.time_stamp%64))/64.0f).xyz * 2.0f - 1.0f.xxx;
 
     roughness*=roughness;
-    vec3 ref_dir = normalize(reflect(direction.xyz, normals_d.xyz) + random_s_dir * roughness * 0.5f);
+    vec3 normal = normalize(normals_d.xyz);
+    vec3 ref_dir = normalize(reflect(direction.xyz, normal) + random_s_dir * roughness * 0.5f);
     traceRayEXT(topLevelAS, rayFlags,
     0xFF, // cullMask
     0, // sbtRecordOffset
     0, // sbtRecordStride
     0, // missIndex
-    world_pos.xyz, // ray origin
+    world_pos.xyz + normal * 0.03f, // ray origin
     tMin, // ray min range
     ref_dir, // ray direction
     tMax, // ray max range

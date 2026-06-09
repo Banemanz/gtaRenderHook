@@ -42,13 +42,14 @@ void main()
     MaterialDesc material = matDesc.i[scnDesc.i[gl_InstanceID].txtOffset + v0.material];
 
     vec2 tc = v0.uv.xy * barycentrics.x + v1.uv.xy * barycentrics.y + v2.uv.xy * barycentrics.z;
-    vec4 res_color = color * unpackUnorm4x8(material.color);
+    float alpha = color.a * unpackUnorm4x8(material.color).a;
 
-    if (material.txd_id >= 0) {
-        vec4 tex_color =texture(sampler2D(textures[material.txd_id], baseSampler), tc) * res_color;
-        if (tex_color.a < 0.9 && tex_color.a * prd.materialParams.a < 0.3)
-        ignoreIntersectionEXT;
+    if (material.txd_id >= 0)
+    {
+        vec4 tex_color = texture(sampler2D(textures[material.txd_id], baseSampler), tc);
+        alpha *= tex_color.a;
     }
-    else if (res_color.a < 0.9 && res_color.a * prd.materialParams.a < 0.3)
+
+    if (alpha < 0.5)
         ignoreIntersectionEXT;
 }

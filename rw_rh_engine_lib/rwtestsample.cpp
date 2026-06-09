@@ -247,6 +247,10 @@ void RwTestSample::Render()
     sky_state.mSunDir[1]      = 0.5f;
     sky_state.mSunDir[2]      = -0.5f;
     sky_state.mSunDir[3]      = 1.0f;
+    sky_state.mSunColor[0]    = 1.0f;
+    sky_state.mSunColor[1]    = 0.85f;
+    sky_state.mSunColor[2]    = 0.65f;
+    sky_state.mSunColor[3]    = 1.0f;
 
     CustomRender();
     RwCameraEndUpdateCmd( m_pMainCamera ).Execute();

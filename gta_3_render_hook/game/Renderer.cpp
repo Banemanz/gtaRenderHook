@@ -337,6 +337,13 @@ void Renderer::Render()
     float &m_fCurrentAmbientBlue =
         *(float *)GetAddressByGame( 0x942FC0, 0x943178, 0x9532B8 );
 
+    int &m_nCurrentSunCoreRed =
+        *(int *)GetAddressByGame( 0x8F2534, 0x8F25E8, 0x902728 );
+    int &m_nCurrentSunCoreGreen =
+        *(int *)GetAddressByGame( 0x8F6264, 0x8F641C, 0x90655C );
+    int &m_nCurrentSunCoreBlue =
+        *(int *)GetAddressByGame( 0x94149C, 0x941654, 0x951794 );
+
     int &current_tc_value =
         *(int *)GetAddressByGame( 0x94057C, 0x940734, 0x950874 );
     auto *vec_to_sun_arr =
@@ -356,10 +363,14 @@ void Renderer::Render()
     sky_state.mAmbientColor[3]   = 1.0f;
     //
 
-    sky_state.mSunDir[0] = vec_to_sun_arr[current_tc_value].x;
-    sky_state.mSunDir[1] = vec_to_sun_arr[current_tc_value].y;
-    sky_state.mSunDir[2] = vec_to_sun_arr[current_tc_value].z;
-    sky_state.mSunDir[3] = 1.0f;
+    sky_state.mSunDir[0]   = vec_to_sun_arr[current_tc_value].x;
+    sky_state.mSunDir[1]   = vec_to_sun_arr[current_tc_value].y;
+    sky_state.mSunDir[2]   = vec_to_sun_arr[current_tc_value].z;
+    sky_state.mSunDir[3]   = 1.0f;
+    sky_state.mSunColor[0] = float( m_nCurrentSunCoreRed ) / 255.0f;
+    sky_state.mSunColor[1] = float( m_nCurrentSunCoreGreen ) / 255.0f;
+    sky_state.mSunColor[2] = float( m_nCurrentSunCoreBlue ) / 255.0f;
+    sky_state.mSunColor[3] = 1.0f;
 
     for ( uint32_t id = 0; id < mNoOfVisibleEntities; id++ )
         mVisibleEntities[id]->Render();

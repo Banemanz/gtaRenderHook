@@ -70,10 +70,14 @@ RTPrimaryRaysPass::RTPrimaryRaysPass( const PrimaryRaysConfig &config )
         device.CreateSampler( { Sampler{ SamplerFilter::Linear } } );
 
     gSkyCfg             = {};
-    gSkyCfg.sunDir[0]   = 1.0f;
-    gSkyCfg.sunDir[1]   = -1.0f;
-    gSkyCfg.sunDir[2]   = 1.0f;
-    gSkyCfg.skyColor[0] = 90.0f / 255.0f;
+    gSkyCfg.sunDir[0]     = 1.0f;
+    gSkyCfg.sunDir[1]     = -1.0f;
+    gSkyCfg.sunDir[2]     = 1.0f;
+    gSkyCfg.sunColor[0]   = 1.0f;
+    gSkyCfg.sunColor[1]   = 0.85f;
+    gSkyCfg.sunColor[2]   = 0.65f;
+    gSkyCfg.sunColor[3]   = 1.0f;
+    gSkyCfg.skyColor[0]   = 90.0f / 255.0f;
     gSkyCfg.skyColor[1] = 205.0f / 255.0f;
     gSkyCfg.skyColor[2] = 1.0f;
     // setup skycfg stuff
@@ -216,6 +220,10 @@ void RTPrimaryRaysPass::Execute( void *tlas, ICommandBuffer *cmd_buffer,
     gSkyCfg.sunDir[1]       = state.mSunDir[1];
     gSkyCfg.sunDir[2]       = state.mSunDir[2];
     gSkyCfg.sunDir[3]       = 1.0f;
+    gSkyCfg.sunColor[0]     = state.mSunColor[0];
+    gSkyCfg.sunColor[1]     = state.mSunColor[1];
+    gSkyCfg.sunColor[2]     = state.mSunColor[2];
+    gSkyCfg.sunColor[3]     = state.mSunColor[3];
     mSkyCfg->Update( &gSkyCfg, sizeof( SkyCfg ) );
     auto *vk_cmd_buff = dynamic_cast<VulkanCommandBuffer *>( cmd_buffer );
 

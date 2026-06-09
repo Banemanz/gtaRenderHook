@@ -82,7 +82,7 @@ void main()
     // Transforming the normal to world space
     normal = normalize(vec3(scnDesc.i[gl_InstanceID].transfoIT * vec4(normal, 0.0)));
 
-    vec3 sun_dir = sky_cfg.sunDir.xyz;
+    vec3 sun_dir = normalize(sky_cfg.sunDir.xyz);
     float ndotl = max(dot(sun_dir, normal), 0.0f);
     if (ndotl > 0)
     {
@@ -112,12 +112,12 @@ void main()
         ndotl *= (shad_pld.hitDistance > 0 ? 1.0f: 0.0f);
     }
     float intensity_coeff = min((v0.emission + v1.emission + v2.emission)/3, 2.0f);
-    vec3 lighting = vec3(ndotl) + sky_cfg.skyColor.rgb * 0.3f;
+    vec3 lighting = sky_cfg.sunColor.rgb * ndotl + sky_cfg.skyColor.rgb * 0.3f;
     if (material.txd_id >= 0) {
         vec4 tex_color = texture(sampler2D(textures[material.txd_id], baseSampler), tc);
-        pay_load.reflection_color = tex_color * unpackUnorm4x8(material.color);
+        pay_load.reflection_color = tex_color * unpackUnorm4x8(material.color) * color;
     }
     else
-        pay_load.reflection_color = vec4(unpackUnorm4x8(material.color));
+        pay_load.reflection_color = unpackUnorm4x8(material.color) * color;
     pay_load.reflection_color.rgb *= (lighting + vec3(intensity_coeff));
 }
